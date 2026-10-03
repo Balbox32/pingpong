@@ -11,6 +11,12 @@ A mobile-first 2D sky-climber in [`baaalloon/index.html`](baaalloon/index.html).
 - When SASS is full, tap Nil's face (or press E) for **Nil's Unimpressed Stare**, which turns every enemy on screen to stone.
 - Each hit pops a balloon. More balloons means a faster climb, but also a bigger target.
 
-**Zones:** The Pasture → Cloud Kingdom → Thunder Belt (telegraphed lightning) → Low Orbit (UFO tractor beams, satellites, meteors) → The Cheese Nebula.
+**Worlds:** The Pasture → Cloud Kingdom → Thunder Belt (telegraphed lightning) → Low Orbit (UFO tractor beams, satellites, meteors) → The Cheese Nebula, and then, beyond space, worlds that change how the whole game looks:
+- **Sky Ocean** (1500 m): Nil and Feta wear snorkels. Jellyfish, puffing pufferfish, kelp, light rays, and the sound goes muffled underwater.
+- **Real Life** (1900 m): every outline disappears for soft shading, shadows, bloom, a sunset with lens flares, and cinematic black bars.
+- **8-Bit Zone** (2300 m): the screen pixelates and gets scanlines, with pixel invaders, pixel coins, a synthwave sun and grid, and chiptune music.
+- **Platypus World** (2700 m): Nil, Feta and every enemy turn into platypuses, including secret agents in fedoras with jetpacks. Feta's bleat becomes a platypus chatter.
+
+On the title screen you can warp straight to any world.
 
 When you fall, Nil gives a verdict on your run, from *“Nil is unimpressed.”* up to *“NIL SMILED.”*
