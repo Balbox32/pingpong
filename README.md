@@ -19,4 +19,9 @@ A mobile-first 2D sky-climber in [`baaalloon/index.html`](baaalloon/index.html).
 
 On the title screen you can warp straight to any world.
 
+**Random mini-games:** every 30–50 seconds the climb pauses for a surprise mini-game, never the same one twice in a row. Win to get +250 points, +2 balloons and a sass boost.
+- **Pump It Up!** Tap like crazy so Nil can pump up a giant balloon before time runs out. It slowly deflates, so don't stop. At 100% Feta floats away.
+- **Snack Attack!** Drag Feta to catch 8 falling snacks in 8 seconds. Don't eat Nil's phone: that costs 2 snacks, and Nil screams.
+- **Headbutt Showdown!** Feta vs. Big Gary (sunglasses). Tap when the swinging needle is in the yellow zone. Best 2 of 3, and the needle speeds up each round. In Platypus World it's Agent Gary.
+
 When you fall, Nil gives a verdict on your run, from *“Nil is unimpressed.”* up to *“NIL SMILED.”*
