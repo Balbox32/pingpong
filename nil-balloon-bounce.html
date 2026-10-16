@@ -1,0 +1,862 @@
+<title>Nil's Balloon Bounce</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Lilita+One&display=swap">
+<style>
+  /* Layout: single full-screen canvas game with HUD overlay */
+  :root {
+    --bg: #87CEEB;
+    --fg: #2d1b4e;
+    --accent: #ff6b9d;
+    --accent2: #ffd93d;
+    --accent3: #6bcb77;
+    --surface: rgba(255,255,255,0.92);
+    --goat: #f5f0e8;
+    --nil-shirt1: #c44569;
+    --nil-shirt2: #f5cd79;
+    --nil-jeans: #4a90d9;
+    --nil-shoes: #e77f34;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1a2e;
+      --fg: #e8e0f0;
+      --surface: rgba(40,30,60,0.92);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1a2e;
+    --fg: #e8e0f0;
+    --surface: rgba(40,30,60,0.92);
+    color-scheme: dark;
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Fredoka', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  #gameWrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    image-rendering: pixelated;
+  }
+  #hud {
+    position: absolute;
+    top: env(safe-area-inset-top, 8px);
+    left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 12px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+    pointer-events: none;
+    z-index: 2;
+  }
+  .hud-item {
+    background: var(--surface);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-family: 'Lilita One', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: max(16px, env(safe-area-inset-left, 0px));
+    text-align: center;
+  }
+  #overlay.hidden { display: none; }
+  .overlay-box {
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
+    padding: 32px 28px;
+    max-width: 380px;
+    width: 100%;
+  }
+  .overlay-box h1 {
+    font-family: 'Lilita One', sans-serif;
+    font-size: 2.2rem;
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+  .overlay-box p {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    opacity: 0.85;
+  }
+  .btn {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Lilita One', sans-serif;
+    font-size: 1.3rem;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 36px;
+    cursor: pointer;
+    transition: transform 0.15s;
+    letter-spacing: 0.03em;
+    pointer-events: auto;
+  }
+  .btn:hover { transform: scale(1.06); }
+  .btn:active { transform: scale(0.97); }
+  .score-final {
+    font-family: 'Lilita One', sans-serif;
+    font-size: 3rem;
+    color: var(--accent2);
+    margin: 8px 0 4px;
+  }
+  .high-score {
+    font-size: 0.9rem;
+    opacity: 0.7;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 500px) {
+    .overlay-box h1 { font-size: 1.7rem; }
+    .overlay-box { padding: 24px 20px; }
+  }
+</style>
+
+<div id="gameWrap">
+  <canvas id="c"></canvas>
+  <div id="hud" class="hidden">
+    <div class="hud-item"><span>🎈</span><span id="scoreVal">0</span></div>
+    <div class="hud-item"><span>⬆</span><span id="heightVal">0m</span></div>
+  </div>
+  <div id="overlay">
+    <div class="overlay-box">
+      <h1>Nil's Balloon Bounce</h1>
+      <p>Nil the weirdo kid rides a bouncing goat through the sky! Collect balloons, dodge storm clouds, and climb as high as you can.</p>
+      <p style="font-size:0.85rem;opacity:0.65">Tap / Click to move &bull; Spacebar to jump</p>
+      <button class="btn" id="startBtn">Let's Go!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const hud = document.getElementById('hud');
+const overlay = document.getElementById('overlay');
+const scoreEl = document.getElementById('scoreVal');
+const heightEl = document.getElementById('heightVal');
+const startBtn = document.getElementById('startBtn');
+
+const W = 480, H = 720;
+canvas.width = W; canvas.height = H;
+
+let state = 'menu'; // menu, playing, dead
+let score = 0, maxHeight = 0, highScore = 0;
+let cameraY = 0;
+let goat, platforms, balloons, clouds, particles, bgClouds;
+let touchX = null, keys = {};
+let frameCount = 0;
+let deathTimer = 0;
+
+try { highScore = parseInt(localStorage.getItem('nilHighScore')) || 0; } catch(e){}
+
+// Colors
+const BALLOON_COLORS = ['#ff6b9d','#ffd93d','#6bcb77','#9b59b6','#3498db','#e74c3c','#f39c12','#1abc9c'];
+const CLOUD_GREY = ['#8899aa','#7788aa','#6677aa'];
+
+function rand(a,b){ return Math.random()*(b-a)+a; }
+
+function initGame(){
+  score = 0; maxHeight = 0; cameraY = 0; frameCount = 0; deathTimer = 0;
+  platforms = [];
+  balloons = [];
+  clouds = [];
+  particles = [];
+  bgClouds = [];
+
+  // initial ground platform — wide so the goat can't miss
+  platforms.push({ x: W/2 - 120, y: H - 60, w: 240, type: 'ground', moveDir: 1, moveX: W/2 - 120, crumbleTimer: 0, used: false });
+
+  // place goat directly on the platform with an upward bounce
+  goat = { x: W/2, y: H - 60 - 20, vx: 0, vy: -10, w: 52, h: 36, onGround: false, jumpTimer: 0, facing: 1, bounceAnim: 0 };
+  for(let i = 1; i < 12; i++){
+    addPlatform(H - 60 - i * 65);
+  }
+  // initial bg clouds
+  for(let i = 0; i < 8; i++){
+    bgClouds.push({ x: rand(0, W), y: rand(-200, H), w: rand(60,140), speed: rand(0.15, 0.5), opacity: rand(0.15, 0.35) });
+  }
+}
+
+function addPlatform(y){
+  let w = rand(55, 95);
+  let x = rand(20, W - 20 - w);
+  let type = 'normal';
+  let r = Math.random();
+  if(maxHeight > 500 && r < 0.12) type = 'crumble';
+  else if(maxHeight > 300 && r < 0.2) type = 'moving';
+  else if(r < 0.08) type = 'spring';
+  platforms.push({ x, y, w, type, moveDir: 1, moveX: x, crumbleTimer: 0, used: false });
+
+  // maybe add balloon
+  if(Math.random() < 0.35){
+    balloons.push({
+      x: x + w/2 + rand(-20, 20),
+      y: y - rand(30, 60),
+      color: BALLOON_COLORS[Math.floor(Math.random()*BALLOON_COLORS.length)],
+      collected: false,
+      wobble: rand(0, Math.PI*2),
+      size: rand(14, 20)
+    });
+  }
+
+  // maybe add storm cloud (obstacle)
+  if(maxHeight > 200 && Math.random() < 0.08 + Math.min(maxHeight/8000, 0.12)){
+    clouds.push({
+      x: rand(30, W-70),
+      y: y - rand(10, 40),
+      w: rand(50, 80),
+      vx: rand(-0.6, 0.6),
+      flash: 0
+    });
+  }
+}
+
+function spawnParticles(x, y, color, count){
+  for(let i = 0; i < count; i++){
+    particles.push({
+      x, y,
+      vx: rand(-3, 3),
+      vy: rand(-4, 1),
+      life: rand(20, 40),
+      maxLife: 40,
+      color,
+      size: rand(2, 5)
+    });
+  }
+}
+
+function drawGoatAndNil(gx, gy){
+  ctx.save();
+  ctx.translate(gx, gy);
+  let s = goat.facing;
+  ctx.scale(s, 1);
+
+  let bounce = Math.sin(goat.bounceAnim * 0.3) * 2;
+  let legKick = goat.vy < -2 ? Math.sin(frameCount * 0.4) * 4 : 0;
+
+  // Goat body
+  ctx.fillStyle = '#f5f0e8';
+  ctx.beginPath();
+  ctx.ellipse(0, 0 + bounce, 26, 16, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#c9bea8';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Goat legs
+  ctx.strokeStyle = '#d4c9b5';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  // back legs
+  ctx.beginPath(); ctx.moveTo(-12, 12+bounce); ctx.lineTo(-15, 26+legKick); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-6, 13+bounce); ctx.lineTo(-8, 27-legKick); ctx.stroke();
+  // front legs
+  ctx.beginPath(); ctx.moveTo(10, 12+bounce); ctx.lineTo(13, 26-legKick); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(16, 11+bounce); ctx.lineTo(19, 25+legKick); ctx.stroke();
+
+  // hooves
+  ctx.fillStyle = '#555';
+  [[-15,26+legKick],[-8,27-legKick],[13,26-legKick],[19,25+legKick]].forEach(([hx,hy])=>{
+    ctx.beginPath(); ctx.ellipse(hx, hy, 3, 2, 0, 0, Math.PI*2); ctx.fill();
+  });
+
+  // Goat head
+  ctx.fillStyle = '#f5f0e8';
+  ctx.beginPath();
+  ctx.ellipse(24, -6+bounce, 13, 11, 0.15, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#c9bea8';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Goat eye
+  ctx.fillStyle = '#2d1b4e';
+  ctx.beginPath(); ctx.arc(30, -9+bounce, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(31, -10+bounce, 1, 0, Math.PI*2); ctx.fill();
+
+  // Goat horns
+  ctx.strokeStyle = '#a89070';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(22, -16+bounce); ctx.quadraticCurveTo(18, -28+bounce, 24, -26+bounce); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(27, -16+bounce); ctx.quadraticCurveTo(30, -28+bounce, 34, -24+bounce); ctx.stroke();
+
+  // Goat beard
+  ctx.strokeStyle = '#d4c9b5';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(34, 0+bounce); ctx.quadraticCurveTo(38, 8+bounce, 35, 12+bounce); ctx.stroke();
+
+  // Goat mouth
+  ctx.strokeStyle = '#b8a898';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(35, -3+bounce, 3, 0.2, 1.8); ctx.stroke();
+
+  // Goat tail
+  ctx.strokeStyle = '#d4c9b5';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(-26, -4+bounce); ctx.quadraticCurveTo(-34, -12+bounce + Math.sin(frameCount*0.15)*4, -30, -6+bounce); ctx.stroke();
+
+  // === NIL (riding the goat) ===
+  let ny = -24 + bounce;
+
+  // Nil's legs (blue jeans)
+  ctx.fillStyle = '#4a90d9';
+  // left leg
+  ctx.beginPath();
+  ctx.moveTo(-6, ny+16); ctx.lineTo(-10, ny+28);
+  ctx.lineTo(-4, ny+28); ctx.lineTo(-1, ny+16);
+  ctx.fill();
+  // right leg
+  ctx.beginPath();
+  ctx.moveTo(4, ny+16); ctx.lineTo(8, ny+28);
+  ctx.lineTo(14, ny+28); ctx.lineTo(9, ny+16);
+  ctx.fill();
+
+  // Nil's shoes (orange campus)
+  ctx.fillStyle = '#e77f34';
+  ctx.beginPath(); ctx.ellipse(-7, ny+29, 5, 3, -0.2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(11, ny+29, 5, 3, 0.2, 0, Math.PI*2); ctx.fill();
+  // shoe soles
+  ctx.fillStyle = '#c46420';
+  ctx.fillRect(-12, ny+30, 10, 2);
+  ctx.fillRect(6, ny+30, 10, 2);
+
+  // Nil's body/torso (striped t-shirt)
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(-8, ny+2); ctx.lineTo(12, ny+2);
+  ctx.lineTo(14, ny+18); ctx.lineTo(-10, ny+18);
+  ctx.closePath();
+  ctx.clip();
+
+  // shirt base
+  ctx.fillStyle = '#ddd';
+  ctx.fillRect(-10, ny, 26, 20);
+
+  // red-purplish stripes
+  for(let i = 0; i < 6; i++){
+    ctx.fillStyle = i % 2 === 0 ? '#c44569' : '#f5cd79';
+    ctx.fillRect(-10, ny + 1 + i * 3, 26, 2);
+  }
+  ctx.restore();
+
+  // Nil's arms
+  ctx.strokeStyle = '#f0c9a8';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  // left arm
+  ctx.beginPath();
+  ctx.moveTo(-7, ny+6);
+  ctx.quadraticCurveTo(-16, ny+14, -12, ny+20 + Math.sin(frameCount*0.1)*2);
+  ctx.stroke();
+  // right arm
+  ctx.beginPath();
+  ctx.moveTo(11, ny+6);
+  ctx.quadraticCurveTo(20, ny+14, 16, ny+20 + Math.sin(frameCount*0.1+1)*2);
+  ctx.stroke();
+
+  // Nil's head
+  ctx.fillStyle = '#f0c9a8';
+  ctx.beginPath();
+  ctx.ellipse(2, ny-4, 9, 10, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Nil's wild hair
+  ctx.fillStyle = '#4a2d0a';
+  ctx.beginPath();
+  ctx.ellipse(2, ny-9, 10, 7, 0, Math.PI, Math.PI*2);
+  ctx.fill();
+  // spiky bits
+  ctx.beginPath();
+  ctx.moveTo(-8, ny-10); ctx.lineTo(-11, ny-18); ctx.lineTo(-4, ny-12);
+  ctx.moveTo(-2, ny-14); ctx.lineTo(0, ny-22); ctx.lineTo(4, ny-13);
+  ctx.moveTo(7, ny-12); ctx.lineTo(12, ny-19); ctx.lineTo(10, ny-10);
+  ctx.fill();
+
+  // Nil's eyes (big and expressive, weirdo style)
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(-3, ny-4, 4, 4.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(6, ny-4, 4, 4.5, 0, 0, Math.PI*2); ctx.fill();
+  // pupils (looking in move direction)
+  ctx.fillStyle = '#2d1b4e';
+  let px = goat.vx > 0.5 ? 1.2 : goat.vx < -0.5 ? -1.2 : 0;
+  ctx.beginPath(); ctx.arc(-3+px, ny-3.5, 2.2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(6+px, ny-3.5, 2.2, 0, Math.PI*2); ctx.fill();
+  // eye highlights
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-2+px, ny-5, 0.8, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(7+px, ny-5, 0.8, 0, Math.PI*2); ctx.fill();
+
+  // Nil's goofy grin
+  ctx.strokeStyle = '#a0604a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(2, ny, 5, 0.2, Math.PI - 0.2);
+  ctx.stroke();
+
+  // Nil's tiny nose
+  ctx.fillStyle = '#dda88a';
+  ctx.beginPath(); ctx.ellipse(2, ny-1, 1.5, 1, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
+function drawBalloon(b){
+  let wobble = Math.sin(b.wobble + frameCount * 0.04) * 3;
+  let bx = b.x + wobble;
+  let by = b.y - cameraY;
+  if(by < -40 || by > H + 40) return;
+
+  // string
+  ctx.strokeStyle = '#999';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(bx, by + b.size);
+  ctx.quadraticCurveTo(bx + wobble * 0.5, by + b.size + 15, bx - wobble * 0.3, by + b.size + 25);
+  ctx.stroke();
+
+  // balloon body
+  ctx.fillStyle = b.color;
+  ctx.beginPath();
+  ctx.ellipse(bx, by, b.size * 0.8, b.size, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // shine
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(bx - b.size*0.25, by - b.size*0.3, b.size*0.22, b.size*0.35, -0.4, 0, Math.PI*2);
+  ctx.fill();
+
+  // knot
+  ctx.fillStyle = b.color;
+  ctx.beginPath();
+  ctx.moveTo(bx - 3, by + b.size);
+  ctx.lineTo(bx + 3, by + b.size);
+  ctx.lineTo(bx, by + b.size + 5);
+  ctx.fill();
+}
+
+function drawStormCloud(c){
+  let cy = c.y - cameraY;
+  if(cy < -60 || cy > H + 60) return;
+
+  ctx.save();
+  if(c.flash > 0){
+    ctx.shadowColor = '#ffe066';
+    ctx.shadowBlur = 20;
+  }
+  ctx.fillStyle = c.flash > 0 ? '#aab8cc' : '#6a7a8d';
+  // cloud shape
+  ctx.beginPath();
+  ctx.ellipse(c.x, cy, c.w * 0.5, 18, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(c.x - c.w*0.25, cy - 8, c.w*0.3, 14, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(c.x + c.w*0.2, cy - 6, c.w*0.28, 13, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // lightning bolt
+  if(c.flash > 0){
+    ctx.strokeStyle = '#ffe066';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(c.x, cy+14);
+    ctx.lineTo(c.x-5, cy+24);
+    ctx.lineTo(c.x+3, cy+24);
+    ctx.lineTo(c.x-2, cy+36);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawPlatform(p){
+  let py = p.y - cameraY;
+  if(py < -20 || py > H + 20) return;
+
+  let px = p.type === 'moving' ? p.moveX : p.x;
+
+  ctx.save();
+  if(p.type === 'crumble' && p.crumbleTimer > 0){
+    ctx.globalAlpha = 1 - p.crumbleTimer / 30;
+    ctx.translate(rand(-2,2), rand(-2,2));
+  }
+
+  // platform colors by type
+  let colors = {
+    ground: ['#7ec850','#5aa030'],
+    normal: ['#7ec850','#5aa030'],
+    spring: ['#ff9f43','#e67e22'],
+    crumble: ['#bdc3c7','#95a5a6'],
+    moving: ['#74b9ff','#0984e3']
+  };
+  let [top, bottom] = colors[p.type] || colors.normal;
+
+  // draw grassy platform
+  ctx.fillStyle = bottom;
+  roundRect(ctx, px, py, p.w, 14, 6);
+  ctx.fill();
+  ctx.fillStyle = top;
+  roundRect(ctx, px, py, p.w, 9, 6);
+  ctx.fill();
+
+  // grass tufts
+  ctx.strokeStyle = '#5daa30';
+  ctx.lineWidth = 1.5;
+  for(let i = 0; i < p.w; i += 8){
+    ctx.beginPath();
+    ctx.moveTo(px + i + 4, py);
+    ctx.lineTo(px + i + 2, py - 4);
+    ctx.stroke();
+  }
+
+  // spring coil
+  if(p.type === 'spring'){
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    let sx = px + p.w/2;
+    ctx.moveTo(sx, py - 1);
+    for(let i = 0; i < 3; i++){
+      ctx.lineTo(sx - 6, py - 4 - i*5);
+      ctx.lineTo(sx + 6, py - 7 - i*5);
+    }
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+}
+
+function drawBgCloud(c){
+  ctx.fillStyle = `rgba(255,255,255,${c.opacity})`;
+  let cy = ((c.y - cameraY * 0.3) % (H + 200));
+  if(cy < -100) cy += H + 200;
+  ctx.beginPath();
+  ctx.ellipse(c.x, cy, c.w*0.5, 16, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(c.x - c.w*0.2, cy - 6, c.w*0.3, 12, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(c.x + c.w*0.25, cy - 4, c.w*0.25, 10, 0, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawSky(){
+  // gradient sky based on height
+  let h1 = Math.max(0, Math.min(1, cameraY / 5000));
+  let r = Math.floor(135 - h1 * 100);
+  let g = Math.floor(206 - h1 * 130);
+  let b = Math.floor(235 - h1 * 60);
+  let grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, `rgb(${r-20},${g-20},${b})`);
+  grad.addColorStop(1, `rgb(${r+20},${g+10},${b-20})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // stars at high altitude
+  if(h1 > 0.3){
+    let alpha = (h1 - 0.3) / 0.7;
+    ctx.fillStyle = `rgba(255,255,230,${alpha * 0.6})`;
+    for(let i = 0; i < 40; i++){
+      let sx = (i * 127 + 50) % W;
+      let sy = ((i * 89 + 30 - cameraY * 0.05) % H + H) % H;
+      let ss = 1 + (i % 3);
+      ctx.beginPath(); ctx.arc(sx, sy, ss, 0, Math.PI*2); ctx.fill();
+    }
+  }
+}
+
+function update(){
+  if(state !== 'playing') return;
+  frameCount++;
+  goat.bounceAnim++;
+
+  // Input
+  let targetX = goat.x;
+  if(touchX !== null){
+    targetX = touchX * (W / canvas.clientWidth);
+  }
+  if(keys['ArrowLeft'] || keys['a']) targetX = goat.x - 60;
+  if(keys['ArrowRight'] || keys['d']) targetX = goat.x + 60;
+
+  goat.vx += (targetX - goat.x) * 0.08;
+  goat.vx *= 0.85;
+  goat.x += goat.vx;
+  if(goat.vx > 1) goat.facing = 1;
+  if(goat.vx < -1) goat.facing = -1;
+
+  // wrap
+  if(goat.x < -20) goat.x = W + 20;
+  if(goat.x > W + 20) goat.x = -20;
+
+  // gravity
+  goat.vy += 0.45;
+  goat.y += goat.vy;
+
+  // jump input
+  if((keys[' '] || keys['ArrowUp'] || keys['w']) && goat.jumpTimer > 0){
+    goat.vy = -11;
+    goat.jumpTimer = 0;
+  }
+
+  // platform collision (only when falling)
+  if(goat.vy >= 0){
+    platforms.forEach(p => {
+      let px = p.type === 'moving' ? p.moveX : p.x;
+      if(goat.x > px - 10 && goat.x < px + p.w + 10 &&
+         goat.y + 20 > p.y && goat.y + 20 < p.y + 16 &&
+         goat.vy >= 0){
+        if(p.type === 'crumble'){
+          if(!p.used){ p.used = true; p.crumbleTimer = 1; }
+          goat.y = p.y - 20;
+          goat.vy = -9;
+          goat.jumpTimer = 8;
+        } else if(p.type === 'spring'){
+          goat.y = p.y - 20;
+          goat.vy = -16;
+          goat.jumpTimer = 8;
+          spawnParticles(goat.x, goat.y + 20, '#ff9f43', 6);
+        } else {
+          goat.y = p.y - 20;
+          goat.vy = -10;
+          goat.jumpTimer = 8;
+        }
+        spawnParticles(goat.x, goat.y + 20, '#7ec850', 3);
+      }
+    });
+  }
+
+  if(goat.jumpTimer > 0) goat.jumpTimer--;
+
+  // moving platforms
+  platforms.forEach(p => {
+    if(p.type === 'moving'){
+      p.moveX += p.moveDir * 1.2;
+      if(p.moveX < 10 || p.moveX + p.w > W - 10) p.moveDir *= -1;
+    }
+    if(p.crumbleTimer > 0) p.crumbleTimer++;
+  });
+
+  // camera
+  let targetCam = goat.y - H * 0.4;
+  if(targetCam < cameraY) cameraY += (targetCam - cameraY) * 0.1;
+
+  // height tracking
+  let h = Math.floor(-goat.y / 10);
+  if(h > maxHeight) maxHeight = h;
+
+  // balloon collection
+  balloons.forEach(b => {
+    if(b.collected) return;
+    let dx = goat.x - b.x;
+    let dy = goat.y - (b.y);
+    if(Math.sqrt(dx*dx + dy*dy) < 30){
+      b.collected = true;
+      score += 10;
+      spawnParticles(b.x, b.y, b.color, 10);
+    }
+  });
+
+  // storm cloud collision
+  clouds.forEach(c => {
+    c.x += c.vx;
+    if(c.x < 20 || c.x > W - 20) c.vx *= -1;
+    if(c.flash > 0) c.flash--;
+    if(Math.random() < 0.01) c.flash = 8;
+
+    let cy = c.y;
+    let dx = goat.x - c.x;
+    let dy = goat.y - cy;
+    if(Math.abs(dx) < c.w * 0.45 && Math.abs(dy) < 25){
+      state = 'dead';
+      deathTimer = 0;
+      spawnParticles(goat.x, goat.y, '#ffe066', 15);
+      let total = score + maxHeight;
+      if(total > highScore){
+        highScore = total;
+        try { localStorage.setItem('nilHighScore', highScore); } catch(e){}
+      }
+    }
+  });
+
+  // generate new platforms above
+  let highest = Math.min(...platforms.map(p => p.y));
+  while(highest > cameraY - 200){
+    highest -= rand(50, 75 + Math.min(maxHeight / 80, 30));
+    addPlatform(highest);
+  }
+
+  // cleanup below camera
+  platforms = platforms.filter(p => p.y - cameraY < H + 100 && p.crumbleTimer < 30);
+  balloons = balloons.filter(b => (b.y - cameraY < H + 100) && !b.collected);
+  clouds = clouds.filter(c => c.y - cameraY < H + 100);
+
+  // particles
+  particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life--; });
+  particles = particles.filter(p => p.life > 0);
+
+  // bg clouds drift
+  bgClouds.forEach(c => { c.x += c.speed; if(c.x > W + 80) c.x = -80; });
+
+  // fell off bottom
+  if(goat.y - cameraY > H + 60){
+    state = 'dead';
+    deathTimer = 0;
+    let total = score + maxHeight;
+    if(total > highScore){
+      highScore = total;
+      try { localStorage.setItem('nilHighScore', highScore); } catch(e){}
+    }
+  }
+
+  // update HUD
+  scoreEl.textContent = score;
+  heightEl.textContent = maxHeight + 'm';
+}
+
+function draw(){
+  drawSky();
+
+  // bg clouds
+  bgClouds.forEach(drawBgCloud);
+
+  // platforms
+  platforms.forEach(drawPlatform);
+
+  // balloons
+  balloons.forEach(b => { if(!b.collected) drawBalloon(b); });
+
+  // storm clouds
+  clouds.forEach(drawStormCloud);
+
+  // goat + nil
+  drawGoatAndNil(goat.x, goat.y - cameraY);
+
+  // particles
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y - cameraY, p.size, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+}
+
+function showDeath(){
+  deathTimer++;
+  if(deathTimer === 1){
+    let total = score + maxHeight;
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = `<div class="overlay-box">
+      <h1>Baaah!</h1>
+      <p>Nil and the goat tumbled out of the sky!</p>
+      <div class="score-final">${total}</div>
+      <p style="margin-bottom:4px">🎈 ${score} balloons &bull; ⬆ ${maxHeight}m height</p>
+      <p class="high-score">Best: ${highScore}</p>
+      <button class="btn" id="retryBtn">Try Again</button>
+    </div>`;
+    document.getElementById('retryBtn').addEventListener('click', startGame);
+  }
+}
+
+function gameLoop(){
+  update();
+  draw();
+  if(state === 'dead') showDeath();
+  requestAnimationFrame(gameLoop);
+}
+
+function startGame(){
+  initGame();
+  state = 'playing';
+  overlay.classList.add('hidden');
+  hud.classList.remove('hidden');
+}
+
+startBtn.addEventListener('click', startGame);
+
+// touch/mouse
+canvas.addEventListener('pointerdown', e => {
+  if(state === 'playing'){
+    let rect = canvas.getBoundingClientRect();
+    touchX = e.clientX - rect.left;
+  }
+});
+canvas.addEventListener('pointermove', e => {
+  if(touchX !== null){
+    let rect = canvas.getBoundingClientRect();
+    touchX = e.clientX - rect.left;
+  }
+});
+canvas.addEventListener('pointerup', () => { touchX = null; });
+canvas.addEventListener('pointercancel', () => { touchX = null; });
+
+// keyboard
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if(e.key === ' ') e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// resize
+function resize(){
+  let wrap = document.getElementById('gameWrap');
+  let ww = wrap.clientWidth, wh = wrap.clientHeight;
+  let scale = Math.min(ww / W, wh / H);
+  canvas.style.width = (W * scale) + 'px';
+  canvas.style.height = (H * scale) + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
+
+// init draw
+initGame();
+draw();
+gameLoop();
+})();
+</script>
