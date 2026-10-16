@@ -461,6 +461,42 @@ function drawCloud(x, y, s, fill, alpha) {
   ctx.globalAlpha = 1;
 }
 
+/* ---------- the theme song ---------- */
+// "Baaalloon!" theme in D major over D–A–Bm–G: [16th-step, midi note, length in steps, 'baa' = goat wobble]
+const THEME = [
+  [0, 69, 1], [2, 74, 2], [4, 78, 2], [6, 81, 3], [10, 78, 2], [12, 76, 2], [14, 74, 2],
+  [16, 73, 2], [18, 76, 2], [20, 81, 4], [24, 79, 2], [26, 78, 2], [28, 76, 4],
+  [32, 74, 2], [34, 78, 2], [36, 83, 3], [40, 81, 2], [42, 78, 2], [44, 74, 2], [46, 78, 2],
+  [48, 79, 2], [50, 78, 2], [52, 76, 2], [54, 74, 2], [56, 76, 6, 'baa'], [62, 69, 2],
+  [64, 81, 1], [65, 81, 1], [66, 81, 2], [68, 83, 2], [70, 81, 2], [72, 78, 4], [76, 74, 4],
+  [80, 76, 2], [82, 78, 2], [84, 76, 2], [86, 73, 2], [88, 69, 7, 'baa'],
+  [96, 71, 2], [98, 74, 2], [100, 78, 2], [102, 83, 2], [104, 81, 4], [108, 78, 4],
+  [112, 79, 2], [114, 81, 2], [116, 83, 2], [118, 81, 2], [120, 79, 2], [122, 76, 2], [124, 74, 4],
+];
+const THEME_AT = []; for (const n of THEME) THEME_AT[n[0]] = n;
+const PROG = [[50, 0], [45, 0], [47, 1], [43, 0]];          // D  A  Bm G
+const PROG_MINOR = [[50, 1], [45, 1], [46, 0], [43, 1]];    // Dm Am Bb Gm (the dramatic remix)
+const DMAJ = [1, 2, 4, 6, 7, 9, 11];
+function thirdBelow(m) {
+  const pc = m % 12; let j = DMAJ.indexOf(pc), o = m - pc; if (j < 0) return m - 4;
+  j -= 2; if (j < 0) { j += 7; o -= 12; } return o + DMAJ[j];
+}
+function minorize(m) { const pc = m % 12; return pc === 6 || pc === 11 || pc === 1 ? m - 1 : m; }
+// Every world plays the same tune in its own style
+const ARR = {
+  title: { bpm: 120, lead: 'square', lp: 2600, harm: true, drums: 'full', arp: 'square' },
+  box:   { bpm: 80, lead: 'bell', oct: 12, harm: true, drums: 'none', bass: 'soft' },
+  0: { bpm: 116, lead: 'square', lp: 2200, drums: 'full', arp: 'square' },                       // Pasture: bouncy
+  1: { bpm: 122, lead: 'triangle', oct: 12, harm: true, drums: 'full', arp: 'square' },          // Clouds: airy
+  2: { bpm: 132, lead: 'saw', lp: 1800, minor: true, drums: 'hard', arp: 'square' },             // Thunder: minor, heavy
+  3: { bpm: 100, lead: 'sine', oct: 12, vib: 5, drums: 'space', arp: 'sine' },                   // Orbit: floaty
+  4: { bpm: 112, lead: 'square', oct: 12, harm: true, drums: 'full', arp: 'square', arpOct: 12 },// Cheese Nebula
+  5: { bpm: 92, lead: 'sine', vib: 7, drums: 'space', arp: 'sine', bass: 'soft' },               // Ocean: wobbly
+  6: { bpm: 88, lead: 'pad', harm: true, drums: 'soft', arp: 'sine', bass: 'soft' },             // Real Life: cinematic
+  7: { bpm: 150, lead: 'square', oct: 12, harm: true, drums: 'chip', arp: 'square', arpOct: 12 },// 8-Bit: chiptune
+  8: { bpm: 124, lead: 'saw', lp: 2400, minor: true, drums: 'full', arp: 'square' },             // Platypus: spy remix
+};
+
 /* ---------- audio: everything synthesised live ---------- */
 const AU = {
   ac: null, step: 0, next: 0, zone: 0, musicOn: false,
@@ -547,32 +583,84 @@ const AU = {
     if (!this.ok()) return; const t = this.ac.currentTime;
     [67, 63, 60, 55].forEach((m, i) => this.osc('triangle', 440 * Math.pow(2, (m - 69) / 12), t + i * .18, .3, .3));
   },
+  // ---- music: the Baaalloon! theme, arranged differently for every world ----
+  arr: 'title', titleOn: false,
+  setMusic(on) {
+    if (on && !this.musicOn) { this.step = 0; if (this.ac) this.next = Math.max(this.next, this.ac.currentTime + .05); }
+    this.musicOn = on;
+  },
   tick() {
     const ac = this.ac;
     while (this.next < ac.currentTime + .12) {
       this.playStep(this.step, this.next);
-      this.next += 60 / ([116, 122, 130, 100, 112, 92, 84, 150, 124][this.zone] || 116) / 4;
-      this.step = (this.step + 1) % 64;
+      this.next += 60 / (ARR[this.arr] || ARR[0]).bpm / 4;
+      this.step = (this.step + 1) % 128;
     }
+  },
+  // one melody note; 'baa' notes wobble like a goat
+  lead(A, m, t, dur, baa, k = 1) {
+    const ac = this.ac, f = 440 * Math.pow(2, (m - 69) / 12), kind = A.lead;
+    const peak = ({ sine: .3, bell: .3, triangle: .28, pad: .15, saw: .11 }[kind] || .12) * k;
+    const rel = kind === 'bell' ? 1.1 : dur + .05;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + (kind === 'pad' ? .07 : .012));
+    if (kind === 'bell') g.gain.exponentialRampToValueAtTime(.0001, t + rel);
+    else { g.gain.setValueAtTime(peak * .85, t + dur * .7); g.gain.exponentialRampToValueAtTime(.0001, t + rel); }
+    let out = g;
+    const lp = A.lp || (kind === 'pad' ? 1700 : 0);
+    if (lp) { const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = lp; g.connect(fl); out = fl; }
+    out.connect(this.mus);
+    const voices = kind === 'pad' ? ['sawtooth', 'sawtooth'] : kind === 'bell' ? ['sine', 'sine'] : [kind === 'saw' ? 'sawtooth' : kind];
+    voices.forEach((ty, vi) => {
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.type = ty; o.frequency.value = kind === 'bell' && vi ? f * 4.01 : f;
+      if (kind === 'pad') o.detune.value = vi ? 9 : -9;
+      og.gain.value = kind === 'bell' && vi ? .2 : voices.length > 1 ? .6 : 1;
+      const vibAmt = baa ? f * .035 : A.vib ? f * .007 : 0;
+      if (vibAmt) {
+        const l = ac.createOscillator(), lg = ac.createGain();
+        l.frequency.value = baa ? 9 : A.vib; lg.gain.value = vibAmt; l.connect(lg); lg.connect(o.frequency);
+        l.start(t + (baa ? dur * .25 : 0)); l.stop(t + rel + .1);
+      }
+      o.connect(og); og.connect(g); o.start(t); o.stop(t + rel + .1);
+    });
   },
   playStep(s, t) {
     if (!this.musicOn || muted) return;
-    const z = this.zone;
-    const progs = [
-      [[50,0],[45,0],[47,1],[43,0]], [[50,0],[45,0],[47,1],[43,0]],
-      [[47,1],[43,0],[50,0],[45,0]], [[50,0],[47,1],[43,0],[45,0]], [[43,0],[45,0],[50,0],[47,1]],
-      [[50,0],[45,0],[47,1],[43,0]], [[43,0],[50,0],[45,0],[47,1]], [[45,1],[41,0],[43,0],[40,0]], [[45,1],[41,0],[45,1],[40,0]],
-    ][z];
-    const [root, minor] = progs[(s / 16) | 0], i = s % 16, m2f = m => 440 * Math.pow(2, (m - 69) / 12);
-    const space = z === 3 || z === 5 || z === 6;
-    if ([0, 3, 6, 8, 11, 14].includes(i)) this.osc('triangle', m2f(root - 12 + (i === 6 || i === 14 ? 12 : 0)), t, .13, .55, this.mus);
-    if (!space && i % 4 === 0) this.osc('sine', 150, t, .15, .8, this.mus, 45);
-    if (space && i === 0) this.osc('sine', 120, t, .4, .7, this.mus, 40);
-    if (i % 2 === 1) this.noise(t, .03, space ? .05 : .12, 'highpass', 7000, 1, this.mus);
-    if (!space && (i === 4 || i === 12)) this.noise(t, .1, .28, 'bandpass', 1800, 1, this.mus);
-    if (i % 2 === 0) {
+    const A = ARR[this.arr] || ARR[0], i = s % 16, ci = (s / 16 | 0) % 4, sd = 60 / A.bpm / 4;
+    const [root, minor] = (A.minor ? PROG_MINOR : PROG)[ci], m2f = m => 440 * Math.pow(2, (m - 69) / 12);
+    const D = A.drums;
+    // bass
+    if (A.bass === 'soft') { if (i === 0 || i === 8) this.osc('sine', m2f(root - 12), t, sd * 7, .5, this.mus); }
+    else if ([0, 3, 6, 8, 11, 14].includes(i)) this.osc('triangle', m2f(root - 12 + (i === 6 || i === 14 ? 12 : 0)), t, .13, .55, this.mus);
+    // drums
+    if (D === 'full' || D === 'hard') {
+      if (i % 4 === 0 || (D === 'hard' && i === 10)) this.osc('sine', 150, t, .15, .8, this.mus, 45);
+      if (i === 4 || i === 12) this.noise(t, .1, D === 'hard' ? .38 : .28, 'bandpass', 1800, 1, this.mus);
+      if (D === 'hard' || i % 2 === 1) this.noise(t, .03, .12, 'highpass', 7000, 1, this.mus);
+    } else if (D === 'chip') {
+      if (i % 4 === 0) this.osc('square', 120, t, .07, .3, this.mus, 40);
+      if (i === 4 || i === 12) this.noise(t, .06, .25, 'highpass', 2500, 1, this.mus);
+      if (i % 2 === 1) this.noise(t, .02, .1, 'highpass', 8000, 1, this.mus);
+    } else if (D === 'space') {
+      if (i === 0) this.osc('sine', 120, t, .4, .7, this.mus, 40);
+      if (i % 2 === 1) this.noise(t, .03, .05, 'highpass', 7000, 1, this.mus);
+    } else if (D === 'soft') {
+      if (i === 0 || i === 8) this.osc('sine', 110, t, .3, .5, this.mus, 40);
+      if (i % 4 === 2) this.noise(t, .05, .06, 'highpass', 6000, 1, this.mus);
+    }
+    // arpeggio (accompaniment, quieter than the tune)
+    if (A.arp && i % 2 === 0) {
       const tones = [0, minor ? 3 : 4, 7, 12, 7, minor ? 3 : 4, 0, 12];
-      this.osc(space ? 'sine' : 'square', m2f(root + 12 + tones[(i / 2) % 8] + (z === 4 || z === 7 ? 12 : 0)), t, .11, space ? .18 : z === 7 ? .1 : .06, this.mus);
+      this.osc(A.arp, m2f(root + 12 + tones[(i / 2) % 8] + (A.arpOct || 0)), t, .1, A.arp === 'sine' ? .1 : .035, this.mus);
+    }
+    // the theme
+    const n = THEME_AT[s];
+    if (n) {
+      const oct = A.oct || 0, fix = m => A.minor ? minorize(m) : m;
+      this.lead(A, fix(n[1] + oct), t, n[2] * sd * .92, n[3] === 'baa');
+      if (A.harm) this.lead(A, fix(thirdBelow(n[1]) + oct), t, n[2] * sd * .92, false, .45);
     }
   },
 };
@@ -745,7 +833,7 @@ function enterZone(z) {
   if (m === 'ocean') { burst(P.x, P.y, ['#fff', '#bff3ff'], 40, 260, 'dot', -120); popText(P.x, y, 'SPLOOSH!', CYAN, 32); }
 }
 function startGame(warp = 0) {
-  AU.init(); reset(); state = 'play'; AU.musicOn = true;
+  AU.init(); reset(); state = 'play'; AU.setMusic(false);
   syncMode(); AU.setUnderwater(false);
   if (warp > 0) {
     const a = ZONES[warp].a + 4;
@@ -763,7 +851,7 @@ function startGame(warp = 0) {
   cv.focus({ preventScroll: true });
 }
 function gameOver() {
-  state = 'over'; overT = 0; AU.musicOn = false; AU.over(); buzz([60, 40, 120]);
+  state = 'over'; overT = 0; AU.setMusic(false); AU.over(); buzz([60, 40, 120]);
   finalScore = score();
   newBest = finalScore > best;
   if (newBest) { best = finalScore; store.set('baaalloon.best', best); }
@@ -1002,6 +1090,9 @@ function drawBonk(pn) {
   const nx = mx + mw * M.needle;
   ink(() => { ctx.moveTo(nx, my + 30); ctx.lineTo(nx - 9, my + 44); ctx.lineTo(nx + 9, my + 44); ctx.closePath(); }, PINK, 2.5, false);
   ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(nx, my - 4); ctx.lineTo(nx, my + 30); ctx.stroke();
+}
+function titleMusic() {
+  if (!AU.titleOn) { AU.titleOn = true; if (muted) toggleMute(); } else toggleMute();
 }
 function toggleMute() { muted = !muted; store.set('baaalloon.muted', muted); AU.setMuted(muted); }
 
@@ -1803,9 +1894,18 @@ function drawTitle() {
   ctx.fillStyle = INK; ctx.beginPath(); rr(W / 2 - hw / 2, H * .9 + 24, hw, best > 0 ? 40 : 22, 11); ctx.fill();
   mtext(help, W / 2, H * .9 + 35, 10, '#fff', 'center', 1);
   if (best > 0) mtext(`BEST ${best} PTS · ${bestAlt} m`, W / 2, H * .9 + 53, 10, LEMON, 'center', 1.5);
-  button(W - 30, 36, 20, toggleMute);
-  ink(() => ctx.arc(W - 30, 36, 18, 0, TAU), LEMON, 3);
-  mtext(muted ? 'OFF' : 'SND', W - 30, 37, 9, INK, 'center', .5);
+  button(W - 30, 36, 22, titleMusic);
+  const playing = AU.titleOn && !muted, bob = playing ? Math.sin(T * 8) * 2 : 0;
+  ink(() => ctx.arc(W - 30, 36, 18, 0, TAU), playing ? PINK : LEMON, 3);
+  ctx.save(); ctx.translate(W - 30, 37 + bob); ctx.fillStyle = INK;
+  ctx.beginPath(); E(-4, 5, 4, 3, -.3); ctx.fill(); ctx.beginPath(); E(6, 3, 4, 3, -.3); ctx.fill();
+  ctx.fillRect(-1, -8, 2, 13); ctx.fillRect(9, -10, 2, 13); ctx.fillRect(-1, -10, 12, 3);
+  ctx.restore();
+  if (!playing) {
+    const a = .75 + Math.sin(T * 5) * .25;
+    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = INK; ctx.beginPath(); rr(W - 150, 26, 98, 20, 10); ctx.fill();
+    mtext('PLAY THE THEME', W - 101, 36.5, 8.5, LEMON, 'center', 1); ctx.restore();
+  }
 }
 function drawStare() {
   const t = stareT, inK = Math.min(1, t / .22), outK = clamp((t - 1.15) / .3, 0, 1);
@@ -1943,7 +2043,7 @@ addEventListener('keydown', e => {
   }
   if (k === 'e' || k === 'shift') startStare();
   if (k === 'p' || k === 'escape') togglePause();
-  if (k === 'm') toggleMute();
+  if (k === 'm') state === 'title' ? titleMusic() : toggleMute();
 });
 addEventListener('keyup', e => {
   const k = e.key.toLowerCase();
@@ -1957,13 +2057,15 @@ addEventListener('blur', () => { keys.left = keys.right = false; });
 let last = performance.now();
 function frame(now) {
   syncMode();
+  AU.arr = state === 'title' ? 'title' : state === 'over' ? 'box' : (state === 'paused' ? AU.arr : zone);
+  AU.setMusic(state === 'title' ? AU.titleOn : state === 'over' ? overT > 1.6 : state !== 'paused');
   const dt = Math.min(.033, Math.max(0, (now - last) / 1000)); last = now;
   update(dt); render();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 // expose for automated smoke tests
-window.__baaalloon = { get state() { return state; }, get P() { return P; }, get ents() { return ents; }, startGame, dash, setSass(v) { sass = v; }, startStare, startMini, miniTap, get M() { return M; } };
+window.__baaalloon = { get state() { return state; }, get P() { return P; }, get ents() { return ents; }, startGame, dash, setSass(v) { sass = v; }, startStare, startMini, miniTap, get M() { return M; }, AU };
 })();
 </script>
 </body>

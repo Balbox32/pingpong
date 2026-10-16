@@ -19,6 +19,15 @@ A mobile-first 2D sky-climber in [`baaalloon/index.html`](baaalloon/index.html).
 
 On the title screen you can warp straight to any world.
 
+**Theme music:** Baaalloon! has its own theme song, an 8-bar melody in D major. Its signature notes wobble like a goat bleating. Every world plays the same tune in its own style:
+- a bouncy version in the Pasture and an airy one in the Clouds
+- a heavy minor-key remix in the Thunder Belt
+- a floaty one in space and a wobbly underwater one in the Sky Ocean
+- a slow cinematic version in Real Life and a fast chiptune in the 8-Bit Zone
+- a minor-key "secret agent" remix in Platypus World
+
+Tap the ♪ button on the title screen to hear the full theme. After a fall it plays as a gentle music box.
+
 **Random mini-games:** every 30–50 seconds the climb pauses for a surprise mini-game, never the same one twice in a row. Win to get +250 points, +2 balloons and a sass boost.
 - **Pump It Up!** Tap like crazy so Nil can pump up a giant balloon before time runs out. It slowly deflates, so don't stop. At 100% Feta floats away.
 - **Snack Attack!** Drag Feta to catch 8 falling snacks in 8 seconds. Don't eat Nil's phone: that costs 2 snacks, and Nil screams.
