@@ -1,0 +1,496 @@
+<title>Cliptique</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Cliptique: plant-based hair clips with a wool felt heart, and botanical scent blends to wear with them. Made in small batches in Cyprus.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Jost:wght@300;400;500&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout: a limestone gallery. Every product floats on its own lit plinth with a museum-style label (name, material, size in mm). */
+:root {
+  --limestone: #ECEAE3;   /* page ground: pale Cypriot limestone, a touch green */
+  --paper: #F8F7F2;       /* raised surfaces: drawer, dialog */
+  --ink: #2B2129;         /* plum-ink from the Cliptique mark */
+  --ink-soft: #6C636B;
+  --olive: #55603A;       /* the one accent: olive leaf */
+  --citron: #D5EF68;      /* brand lime, used only in the mark */
+  --line: rgba(43, 33, 41, 0.13);
+  --stage-top: #F6F5F0;
+  --stage-bottom: #DEDBD1;
+  --on-ink: #F8F7F2;
+
+  --display: 'Marcellus', 'Trajan Pro', Georgia, serif;
+  --body: 'Jost', 'Futura', 'Avenir Next', 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --step--1: 0.8125rem; --step-0: 1rem; --step-1: 1.1875rem; --step-2: 1.5rem; --step-3: 2.125rem; --step-4: clamp(2.25rem, 4.6vw, 3.5rem);
+  --hero: clamp(3.4rem, 9.4vw, 7.6rem);
+  --max: 1240px;
+  --ease: cubic-bezier(.2, .7, .1, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --limestone: #161315; --paper: #1F1B1E; --ink: #EEE9E1; --ink-soft: #A99FA6; --olive: #BAC58E; --citron: #D5EF68;
+    --line: rgba(238, 233, 225, 0.14); --stage-top: #29242A; --stage-bottom: #121012; --on-ink: #1A1619; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --limestone: #161315; --paper: #1F1B1E; --ink: #EEE9E1; --ink-soft: #A99FA6; --olive: #BAC58E; --citron: #D5EF68;
+  --line: rgba(238, 233, 225, 0.14); --stage-top: #29242A; --stage-bottom: #121012; --on-ink: #1A1619; color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--limestone); color: var(--ink); font-family: var(--body); font-weight: 400; font-size: var(--step-0); line-height: 1.6;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: hidden;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--limestone); }
+.wrap { max-width: var(--max); margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+@media (min-width: 720px) { .wrap { padding-left: max(32px, env(safe-area-inset-left, 0px)); padding-right: max(32px, env(safe-area-inset-right, 0px)); } }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; letter-spacing: 0.005em; }
+p { margin: 0; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 1.5px solid var(--olive); outline-offset: 3px; }
+.eyebrow { font-size: var(--step--1); letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); }
+.mono { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.02em; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 26px; border: 1px solid var(--ink);
+  background: var(--ink); color: var(--on-ink); text-decoration: none; letter-spacing: 0.14em; text-transform: uppercase; font-size: var(--step--1);
+  border-radius: 2px; cursor: pointer; transition: background .3s var(--ease), color .3s var(--ease); }
+.btn:hover { background: transparent; color: var(--ink); }
+.btn.ghost { background: transparent; color: var(--ink); }
+.btn.ghost:hover { background: var(--ink); color: var(--on-ink); }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.link { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; letter-spacing: 0.14em; text-transform: uppercase; font-size: var(--step--1);
+  padding-block: 6px; border-bottom: 1px solid var(--line); transition: border-color .3s; }
+.link:hover { border-color: var(--ink); }
+
+/* announcement + header */
+.announce { background: var(--ink); color: var(--on-ink); font-size: 0.78rem; letter-spacing: 0.08em; text-align: center; }
+.announce p { padding-block: 9px; }
+.site { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--limestone) 88%, transparent);
+  backdrop-filter: saturate(1.2) blur(14px); -webkit-backdrop-filter: saturate(1.2) blur(14px); border-bottom: 1px solid var(--line); }
+.site .wrap { display: flex; align-items: center; gap: 24px; min-height: 64px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand svg { height: 26px; width: auto; }
+.brand span { font-family: var(--display); font-size: 1.45rem; letter-spacing: 0.06em; line-height: 1; }
+.site nav { display: flex; gap: 28px; margin-inline-start: auto; }
+.site nav a { text-decoration: none; font-size: 0.82rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); transition: color .2s; }
+.site nav a:hover { color: var(--ink); }
+.bag-btn { display: inline-flex; align-items: center; gap: 10px; background: none; border: 0; cursor: pointer; font-size: 0.82rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 10px 0; }
+.bag-btn .count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; border: 1px solid var(--ink); font-size: 0.72rem; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.bag-btn.bump .count { animation: bump .5s var(--ease); }
+@keyframes bump { 40% { transform: scale(1.3); background: var(--ink); color: var(--on-ink); } }
+@media (max-width: 860px) {
+  .site nav { display: none; }
+  .bag-btn { margin-inline-start: auto; }
+}
+.site .mobile-nav { display: none; }
+@media (max-width: 860px) {
+  .site .mobile-nav { display: flex; min-height: 0; gap: 22px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); }
+  .mobile-nav::-webkit-scrollbar { display: none; }
+  .mobile-nav a { flex: none; text-decoration: none; font-size: 0.76rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); padding-block: 12px; }
+}
+
+/* hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); align-items: center; gap: 24px; padding-block: 40px 56px; }
+.hero-copy { display: flex; flex-direction: column; gap: 26px; min-width: 0; }
+.hero h1 { font-size: var(--hero); line-height: 0.92; letter-spacing: -0.01em; }
+.hero h1 em { font-style: normal; color: var(--olive); }
+.lede { font-size: var(--step-1); font-weight: 300; max-width: 31ch; color: var(--ink); }
+.cta { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; }
+.facts { display: flex; gap: 36px; margin: 8px 0 0; padding-top: 22px; border-top: 1px solid var(--line); }
+.facts div { display: flex; flex-direction: column; gap: 2px; }
+.facts dt { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); }
+.facts dd { margin: 0; font-family: var(--display); font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+.hero-stage { position: relative; aspect-ratio: 1 / 1; max-width: 100%; border-radius: 2px; overflow: hidden; background: radial-gradient(ellipse at 50% 38%, var(--stage-top), var(--stage-bottom)); }
+.hero-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hero-caption { position: absolute; left: 18px; right: 18px; bottom: 14px; color: var(--ink-soft); }
+@media (max-width: 560px) { .hero-caption { display: none; } }
+@media (max-width: 860px) {
+  .hero { grid-template-columns: minmax(0, 1fr); padding-block: 20px 40px; }
+  .hero-stage { order: -1; aspect-ratio: 1 / 0.92; }
+}
+
+/* value strip */
+.values { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block: 1px solid var(--line); }
+.values li { padding: 18px 16px; display: flex; flex-direction: column; gap: 2px; border-inline-start: 1px solid var(--line); }
+.values li:first-child { border-inline-start: 0; padding-inline-start: 0; }
+.values b { font-weight: 500; font-size: 0.82rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.values span { font-size: 0.9rem; color: var(--ink-soft); }
+@media (max-width: 860px) { .values { grid-template-columns: repeat(2, minmax(0, 1fr)); } .values li:nth-child(3) { border-inline-start: 0; padding-inline-start: 0; } .values li:nth-child(n+3) { border-top: 1px solid var(--line); } }
+
+/* sections */
+section.block { padding-block: 88px 24px; scroll-margin-top: 70px; }
+.head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; gap: 16px 48px; margin-bottom: 36px; }
+.head h2 { font-size: var(--step-4); line-height: 1.02; }
+.head p { color: var(--ink-soft); max-width: 46ch; font-weight: 300; font-size: var(--step-1); }
+.head .eyebrow { grid-column: 1 / -1; }
+@media (max-width: 720px) { .head { grid-template-columns: minmax(0, 1fr); } section.block { padding-block: 64px 16px; } }
+@media (max-width: 860px) { section.block { scroll-margin-top: 100px; } }
+
+/* product grid */
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 22px; }
+@media (max-width: 1080px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 12px; } }
+.card { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.stage { position: relative; display: block; width: 100%; aspect-ratio: 4 / 5; max-width: 100%; padding: 0; border: 0; cursor: pointer; overflow: hidden; border-radius: 2px;
+  background: radial-gradient(ellipse at 50% 38%, var(--stage-top), var(--stage-bottom)); }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage .badge { position: absolute; top: 12px; left: 12px; font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; padding: 4px 8px; border: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 70%, transparent); }
+.stage .view { position: absolute; right: 12px; bottom: 12px; font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); opacity: 0; transform: translateY(4px); transition: opacity .3s, transform .3s var(--ease); }
+.stage:hover .view, .stage:focus-visible .view { opacity: 1; transform: none; }
+@media (hover: none) { .stage .view { opacity: 1; transform: none; } }
+.meta { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.meta .row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.meta h3 { font-size: var(--step-1); line-height: 1.2; }
+.price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.meta .spec { color: var(--ink-soft); font-size: 0.86rem; }
+.swatches { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 4px; }
+.sw { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); padding: 0; cursor: pointer; position: relative; }
+.sw[aria-checked="true"]::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1px solid var(--ink); }
+.sw.lg { width: 30px; height: 30px; }
+.add-row { display: flex; gap: 8px; padding-top: 6px; margin-top: auto; }
+.add-row .btn { min-height: 40px; padding: 0 14px; flex: 1; font-size: 0.72rem; }
+@media (max-width: 760px) { .meta .spec .opt { display: none; } .sw { width: 16px; height: 16px; } .swatches { gap: 6px; } }
+
+.promo { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; min-height: 0; padding: 26px; border: 1px solid var(--line); border-radius: 2px; }
+.promo h3 { font-size: var(--step-3); line-height: 1.05; }
+.promo p { color: var(--ink-soft); font-weight: 300; }
+.promo .big { font-family: var(--display); font-size: var(--step-3); font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) { .promo { padding: 16px; } .promo h3 { font-size: var(--step-2); } .promo .big { font-size: var(--step-2); } }
+
+/* how it works */
+.felt { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+.felt .stage { aspect-ratio: 5 / 4; cursor: default; }
+.callout { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; pointer-events: none; white-space: nowrap; font-size: 0.74rem; letter-spacing: 0.04em; color: var(--ink); will-change: transform; }
+.callout i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 4px color-mix(in srgb, var(--paper) 70%, transparent); flex: none; }
+.callout.left { flex-direction: row-reverse; }
+.callout span { padding: 3px 8px; background: color-mix(in srgb, var(--paper) 80%, transparent); border: 1px solid var(--line); }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.steps li { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 4px 12px; padding-block: 22px; border-top: 1px solid var(--line); }
+.steps li:last-child { border-bottom: 1px solid var(--line); }
+.steps .n { font-family: var(--display); font-size: var(--step-2); color: var(--olive); line-height: 1.1; grid-row: span 2; }
+.steps h3 { font-size: var(--step-1); }
+.steps p { color: var(--ink-soft); font-weight: 300; max-width: 44ch; }
+@media (max-width: 860px) { .felt { grid-template-columns: minmax(0, 1fr); } .callout { font-size: 0.66rem; } .callout span { padding: 2px 6px; } }
+
+/* scents */
+.notes { color: var(--ink-soft); font-size: 0.86rem; font-style: italic; font-weight: 300; }
+.blend { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.blend li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; font-size: 0.8rem; }
+.blend .bar { grid-column: 1 / -1; height: 2px; background: var(--line); position: relative; }
+.blend .bar::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--ink); }
+.blend .pct { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.limited { color: var(--olive); }
+.sizes { display: inline-flex; border: 1px solid var(--line); border-radius: 2px; overflow: hidden; }
+.sizes button { border: 0; background: none; padding: 6px 12px; cursor: pointer; font-size: 0.78rem; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+.sizes button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+@media (max-width: 760px) { .blend { display: none; } .add-row { flex-wrap: wrap; } .sizes { flex: 1 1 100%; } .sizes button { flex: 1; white-space: nowrap; } .add-row .btn { flex: 1 1 100%; } }
+
+/* sets */
+.sets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--ink); }
+.set { display: flex; flex-direction: column; gap: 14px; padding: 28px 28px 32px 0; border-bottom: 1px solid var(--line); }
+.set + .set { padding-inline-start: 28px; border-inline-start: 1px solid var(--line); }
+.set h3 { font-size: var(--step-3); }
+.set .p { font-family: var(--display); font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+.set ul { margin: 0; padding: 0; list-style: none; color: var(--ink-soft); font-weight: 300; display: flex; flex-direction: column; gap: 4px; }
+.set ul li::before { content: "— "; color: var(--line); }
+.set .tag { align-self: flex-start; font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--olive); }
+.set .btn { margin-top: auto; align-self: flex-start; }
+@media (max-width: 860px) { .sets { grid-template-columns: minmax(0, 1fr); } .set, .set + .set { padding: 24px 0; border-inline-start: 0; } }
+
+/* story */
+.story { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: start; }
+.story blockquote { margin: 0; font-family: var(--display); font-size: var(--step-3); line-height: 1.18; text-wrap: balance; }
+.story .copy { display: flex; flex-direction: column; gap: 16px; font-weight: 300; font-size: var(--step-1); max-width: 52ch; }
+.story dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 12px 0 0; padding-top: 18px; border-top: 1px solid var(--line); }
+.story dt { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); }
+.story dd { margin: 0; font-family: var(--display); font-size: var(--step-2); }
+@media (max-width: 860px) { .story { grid-template-columns: minmax(0, 1fr); gap: 28px; } }
+
+/* faq */
+.faq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 32px; }
+.faq details { border-top: 1px solid var(--line); }
+.faq details:last-child { border-bottom: 1px solid var(--line); }
+.faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: 16px; padding-block: 20px; font-size: var(--step-1); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--display); font-size: 1.4rem; line-height: 1; transition: transform .3s var(--ease); }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { padding-bottom: 22px; color: var(--ink-soft); font-weight: 300; max-width: 62ch; }
+@media (max-width: 860px) { .faq { grid-template-columns: minmax(0, 1fr); gap: 8px; } }
+
+/* letter */
+.letter { margin-top: 88px; background: var(--ink); color: var(--on-ink); }
+.letter .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: end; padding-block: 64px; }
+.letter h2 { font-size: var(--step-4); line-height: 1.04; }
+.letter p { opacity: .78; font-weight: 300; margin-top: 14px; max-width: 40ch; }
+.letter form { display: flex; gap: 0; border-bottom: 1px solid color-mix(in srgb, var(--on-ink) 50%, transparent); }
+.letter input { flex: 1; min-width: 0; background: none; border: 0; color: inherit; font: inherit; font-size: var(--step-1); padding: 14px 0; outline: none; }
+.letter input::placeholder { color: color-mix(in srgb, var(--on-ink) 55%, transparent); }
+.letter button { background: none; border: 0; color: inherit; cursor: pointer; letter-spacing: 0.14em; text-transform: uppercase; font-size: var(--step--1); padding: 0 0 0 16px; }
+.letter .ok { margin-top: 12px; font-size: 0.9rem; opacity: .85; min-height: 1.5em; }
+@media (max-width: 860px) { .letter .wrap { grid-template-columns: minmax(0, 1fr); padding-block: 48px; } }
+
+footer { padding-block: 48px 40px; }
+footer .wrap { display: grid; grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr)); gap: 32px; }
+footer h4 { margin: 0 0 10px; font-weight: 400; font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); }
+footer ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.92rem; }
+footer ul a { text-decoration: none; }
+footer .small { grid-column: 1 / -1; padding-top: 22px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 0.8rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
+footer .brand-col p { color: var(--ink-soft); font-weight: 300; max-width: 30ch; margin-top: 12px; }
+@media (max-width: 860px) { footer .wrap { grid-template-columns: repeat(2, minmax(0, 1fr)); } footer .brand-col { grid-column: 1 / -1; } }
+
+/* product dialog */
+dialog.product { width: min(1100px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 2px; background: var(--paper); color: var(--ink); overflow: hidden; }
+dialog.product::backdrop { background: rgba(20, 15, 19, 0.55); backdrop-filter: blur(3px); }
+dialog.product[open] { animation: rise .45s var(--ease); }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+.pd { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); height: min(780px, calc(100dvh - 34px)); }
+.pd-stage { position: relative; min-height: 0; background: radial-gradient(ellipse at 50% 38%, var(--stage-top), var(--stage-bottom)); touch-action: none; }
+.pd-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+.pd-stage canvas:active { cursor: grabbing; }
+.pd-stage .hint { position: absolute; left: 16px; bottom: 14px; color: var(--ink-soft); pointer-events: none; }
+.pd-panel { display: flex; flex-direction: column; gap: 22px; padding: 36px 32px 28px; overflow-y: auto; min-width: 0; }
+.pd-panel h2 { font-size: var(--step-4); line-height: 1; }
+.pd-panel .lead { font-weight: 300; color: var(--ink-soft); font-size: var(--step-1); }
+.pd-panel .pp { font-family: var(--display); font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+.opt-group { display: flex; flex-direction: column; gap: 10px; }
+.opt-group > span { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); }
+.opt-group > span b { font-weight: 400; color: var(--ink); letter-spacing: 0.04em; text-transform: none; font-size: 0.86rem; margin-inline-start: 6px; }
+.choice { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice button { border: 1px solid var(--line); background: none; padding: 9px 14px; border-radius: 2px; cursor: pointer; font-size: 0.86rem; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: start; }
+.choice button small { color: var(--ink-soft); font-size: 0.74rem; }
+.choice button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.specs { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 18px; margin: 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: 0.86rem; }
+.specs dt { color: var(--ink-soft); }
+.specs dd { margin: 0; }
+.close { position: absolute; top: 12px; right: 12px; z-index: 2; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); cursor: pointer; font-size: 1.2rem; line-height: 1; }
+@media (max-width: 860px) {
+  dialog.product { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; }
+  .pd { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: 100dvh; max-height: 100dvh; overflow-y: auto; }
+  .pd-stage { min-height: 0; aspect-ratio: 1 / 0.86; }
+  .pd-panel { padding: 24px max(16px, env(safe-area-inset-left, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)); overflow: visible; }
+  .close { top: calc(10px + env(safe-area-inset-top, 0px)); right: max(10px, env(safe-area-inset-right, 0px)); }
+}
+
+/* bag drawer */
+.scrim { position: fixed; inset: 0; z-index: 40; background: rgba(20, 15, 19, 0.45); opacity: 0; pointer-events: none; transition: opacity .35s; }
+.scrim.on { opacity: 1; pointer-events: auto; }
+.drawer { position: fixed; z-index: 41; top: 0; right: 0; bottom: 0; width: min(440px, 100vw); background: var(--paper); border-inline-start: 1px solid var(--line);
+  transform: translateX(100%); transition: transform .45s var(--ease); display: flex; flex-direction: column;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) 24px; }
+.drawer.on { transform: none; }
+.drawer header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.drawer header h2 { font-size: var(--step-2); }
+.drawer .x { background: none; border: 0; font-size: 1.4rem; cursor: pointer; width: 40px; height: 40px; }
+.lines { list-style: none; margin: 0; padding: 0; flex: 1; overflow-y: auto; }
+.lines li { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 4px 14px; padding-block: 16px; border-bottom: 1px solid var(--line); align-items: start; }
+.lines .thumb { width: 56px; height: 70px; grid-row: span 3; background: radial-gradient(ellipse at 50% 38%, var(--stage-top), var(--stage-bottom)); display: block; object-fit: cover; }
+.lines .name { font-family: var(--display); font-size: var(--step-1); line-height: 1.2; }
+.lines .opts { color: var(--ink-soft); font-size: 0.8rem; grid-column: 2; }
+.lines .lp { font-variant-numeric: tabular-nums; }
+.qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 2px; grid-column: 2; justify-self: start; margin-top: 6px; }
+.qty button { background: none; border: 0; width: 30px; height: 30px; cursor: pointer; }
+.qty span { min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; font-size: 0.86rem; }
+.rm { grid-column: 3; justify-self: end; background: none; border: 0; color: var(--ink-soft); font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; margin-top: 6px; }
+.empty { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; color: var(--ink-soft); }
+.totals { padding-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.totals .r { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+.totals .r.big { font-family: var(--display); font-size: var(--step-2); }
+.totals .note { color: var(--ink-soft); font-size: 0.82rem; }
+.progress { height: 2px; background: var(--line); position: relative; }
+.progress i { position: absolute; inset: 0 auto 0 0; background: var(--olive); width: 0; transition: width .5s var(--ease); }
+.checkout-msg { font-size: 0.86rem; color: var(--ink); background: var(--limestone); padding: 12px 14px; border-inline-start: 2px solid var(--olive); }
+
+.toast { position: fixed; z-index: 50; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--ink); color: var(--on-ink); padding: 12px 18px; font-size: 0.86rem; letter-spacing: 0.04em; transition: opacity .3s, transform .4s var(--ease); border-radius: 2px; max-width: calc(100vw - 32px); }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+.reveal { transition: opacity .9s var(--ease), transform .9s var(--ease); }
+.js .reveal.pending { opacity: .001; transform: translateY(18px); }
+@media (prefers-reduced-motion: reduce) { .reveal, .js .reveal.pending { transition: none; opacity: 1; transform: none; } }
+</style>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+} }
+</script>
+
+<div class="announce"><p>First batch ships March 2027 · Pre-orders open · Free delivery in Cyprus over €35</p></div>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Cliptique home"><svg id="mark" viewBox="0 0 40 40" aria-hidden="true"></svg><span>cliptique</span></a>
+    <nav aria-label="Main">
+      <a href="#clips">Clips</a><a href="#scents">Scents</a><a href="#sets">Sets</a><a href="#felt">How it works</a><a href="#story">Story</a>
+    </nav>
+    <button class="bag-btn" id="bag-open" aria-haspopup="dialog" aria-controls="bag">Bag <span class="count" id="bag-count">0</span></button>
+  </div>
+  <div class="wrap mobile-nav" aria-label="Sections">
+    <a href="#clips">Clips</a><a href="#scents">Scents</a><a href="#sets">Sets</a><a href="#felt">How it works</a><a href="#story">Story</a><a href="#faq">Care</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="wrap hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Scented hair clips · Made in Cyprus</p>
+      <h1>Quite the<br><em>catch.</em></h1>
+      <p class="lede">Plant-based clips with a wool felt heart. Add three drops of a botanical blend and wear the scent all day.</p>
+      <div class="cta"><a class="btn" href="#clips">Shop the clips</a><a class="link" href="#scents">Explore the scents</a></div>
+      <dl class="facts">
+        <div><dt>Pair set</dt><dd>€19.90</dd></div>
+        <div><dt>Refill</dt><dd>€6.90</dd></div>
+        <div><dt>One bottle</dt><dd>3–4 weeks</dd></div>
+      </dl>
+    </div>
+    <div class="hero-stage" id="hero-stage">
+      <canvas id="hero-canvas" aria-label="Signature C clip in plum with lime felt, a Leaf clip in sage and a Rose Geranium flacon, floating"></canvas>
+      <p class="hero-caption mono">Signature C · Plum, lime felt &nbsp;/&nbsp; The Leaf · Sage &nbsp;/&nbsp; Rose Geranium</p>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <ul class="values">
+      <li><b>Plant-based</b><span>PLA tops, finished by hand</span></li>
+      <li><b>Wool felt heart</b><span>Holds the scent for a day</span></li>
+      <li><b>Refill, don't replace</b><span>The clip lasts for years</span></li>
+      <li><b>Small batches</b><span>Fifty sets at a time</span></li>
+    </ul>
+  </div>
+
+  <section class="block wrap" id="clips" aria-labelledby="clips-h">
+    <div class="head">
+      <p class="eyebrow">The clips · Seven shapes</p>
+      <h2 id="clips-h">Wear it in your hair.<br>Carry it on the breeze.</h2>
+      <p>Each clip has a pocket of soft wool felt. Drip in a few drops of oil and the scent stays close to you, never on your skin. Pick a colour below, or open a clip to turn it in 3D.</p>
+    </div>
+    <div class="grid" id="clip-grid"></div>
+  </section>
+
+  <section class="block wrap" id="felt" aria-labelledby="felt-h">
+    <div class="head">
+      <p class="eyebrow">How it works</p>
+      <h2 id="felt-h">Three layers and three drops.</h2>
+      <p>A plant-based top, a wool felt pad and a steel clip. The oil goes on the felt, which releases it slowly through the day.</p>
+    </div>
+    <div class="felt">
+      <div class="stage" id="explode-stage" role="img" aria-label="Exploded view of The Oval: drops of oil above, the wool felt pad, the plant-based top and the steel snap clip below">
+        <canvas></canvas>
+      </div>
+      <ol class="steps">
+        <li><span class="n">1</span><h3>Drip</h3><p>Add three to five drops of your blend to the felt. Let it soak in for a minute.</p></li>
+        <li><span class="n">2</span><h3>Clip in</h3><p>Wear it as usual. The felt keeps the oil off your skin and lets the scent rise around you.</p></li>
+        <li><span class="n">3</span><h3>Refill</h3><p>One dose lasts about a day. A 5 ml bottle lasts three to four weeks of daily wear.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="block wrap" id="scents" aria-labelledby="scents-h">
+    <div class="head">
+      <p class="eyebrow">The scents · Four blends</p>
+      <h2 id="scents-h">Botanical blends, mixed by hand.</h2>
+      <p>Pure essential oils, blended in small batches and bottled in glass. Each label carries the recipe and the batch number.</p>
+    </div>
+    <div class="grid" id="scent-grid"></div>
+  </section>
+
+  <section class="block wrap" id="sets" aria-labelledby="sets-h">
+    <div class="head">
+      <p class="eyebrow">Sets</p>
+      <h2 id="sets-h">Every set comes with a blend.</h2>
+      <p>Choose any clip and colour when you add a set. The 5 ml blend is your choice of scent.</p>
+    </div>
+    <div class="sets" id="sets-list"></div>
+  </section>
+
+  <section class="block wrap" id="story" aria-labelledby="story-h">
+    <div class="story">
+      <div>
+        <p class="eyebrow">Our story</p>
+        <h2 id="story-h" class="visually-hidden">Our story</h2>
+        <blockquote>Summer evenings in Cyprus are long and warm. We wanted something lovely to wear in them.</blockquote>
+      </div>
+      <div class="copy">
+        <p>Cliptique began with a simple idea: a hair clip that carries a scent the way a sachet does. Each top is printed from plant-based PLA, finished by hand and set with a pad of pure wool felt.</p>
+        <p>We make everything at home in batches of fifty, so colours change with the seasons and nothing sits in a warehouse. When the scent fades, you refill the felt and keep the clip.</p>
+        <dl>
+          <div><dt>Batch size</dt><dd>50 sets</dd></div>
+          <div><dt>Felt</dt><dd>100% wool</dd></div>
+          <div><dt>Bottles</dt><dd>Glass</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="block wrap" id="faq" aria-labelledby="faq-h">
+    <div class="faq">
+      <div><p class="eyebrow">Care and questions</p><h2 id="faq-h" class="visually-hidden">Care and questions</h2></div>
+      <div>
+        <details><summary>How long does the scent last?</summary><p>Three to five drops on the felt last about a day. A 5 ml bottle holds roughly 100 drops, enough for three to four weeks of daily wear.</p></details>
+        <details><summary>Can I put the oil on my skin?</summary><p>No. The blends are made for the wool felt only. Keep them away from your eyes and skin, and wash your hands after refilling. If you have sensitive skin or allergies, check the ingredients on the label first.</p></details>
+        <details><summary>Are the clips suitable for children?</summary><p>Children over three can wear them with an adult adding the oil. The clips contain small parts, so they are not for children under three.</p></details>
+        <details><summary>How do I clean the felt or change the scent?</summary><p>Let the felt air out for a day, then add the new blend. Wipe the clip with a soft, dry cloth and keep it out of water.</p></details>
+        <details><summary>When will my order ship?</summary><p>Our first batch ships in March 2027. Pre-orders are made in the order they arrive. Delivery in Cyprus costs €3.50 and is free over €35. We ship to the EU by tracked mail.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="letter" aria-labelledby="letter-h">
+    <div class="wrap">
+      <div>
+        <h2 id="letter-h">Be first to the first batch.</h2>
+        <p>One email when pre-orders ship, and one when a new colour arrives. Nothing else.</p>
+      </div>
+      <div>
+        <form id="letter-form" novalidate>
+          <label class="visually-hidden" for="letter-email">Email address</label>
+          <input id="letter-email" type="email" placeholder="Your email address" autocomplete="email" required>
+          <button type="submit">Sign up</button>
+        </form>
+        <p class="ok" id="letter-ok" role="status"></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="brand-col">
+      <a class="brand" href="#top" aria-label="Cliptique home"><svg class="mark2" viewBox="0 0 40 40" aria-hidden="true"></svg><span>cliptique</span></a>
+      <p>Scented hair clips and botanical blends. Made in small batches in Cyprus.</p>
+    </div>
+    <div><h4>Shop</h4><ul><li><a href="#clips">Clips</a></li><li><a href="#scents">Scents</a></li><li><a href="#sets">Sets</a></li></ul></div>
+    <div><h4>About</h4><ul><li><a href="#felt">How it works</a></li><li><a href="#story">Our story</a></li><li><a href="#faq">Care</a></li></ul></div>
+    <div><h4>Follow</h4><ul><li>Instagram · @cliptique</li><li>TikTok · @cliptique</li><li>Etsy · Cliptique</li></ul></div>
+    <div class="small">
+      <span>Cliptique clips are scented accessories. Not for children under 3: small parts. Keep oils away from eyes and skin.</span>
+      <span>© 2026 Cliptique · Cyprus</span>
+    </div>
+  </div>
+</footer>
+
+<dialog class="product" id="product" aria-labelledby="pd-title">
+  <button class="close" id="pd-close" aria-label="Close">×</button>
+  <div class="pd">
+    <div class="pd-stage" id="pd-stage"><canvas id="pd-canvas"></canvas><span class="hint mono">Drag to turn · pinch or scroll to zoom</span></div>
+    <div class="pd-panel" id="pd-panel"></div>
+  </div>
+</dialog>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="bag" role="dialog" aria-modal="true" aria-labelledby="bag-h" aria-hidden="true">
+  <header><h2 id="bag-h">Your bag</h2><button class="x" id="bag-close" aria-label="Close bag">×</button></header>
+  <div id="bag-body" style="display:flex;flex-direction:column;flex:1;min-height:0"></div>
+</aside>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>document.documentElement.classList.add('js');</script>
+<script type="module" src="app.js"></script>
