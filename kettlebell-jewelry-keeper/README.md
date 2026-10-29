@@ -21,12 +21,15 @@ Size: about 44 mm wide and 64 mm tall closed, roughly the same as the original k
 ## Files
 | File | Colour | Notes |
 |---|---|---|
+| `kettlebell_keeper_bambu.3mf` | — | **easiest:** a ready Bambu Studio project with both parts on the plate and the M set to filament slot 2 |
 | `stl/kettlebell_top.stl` | white / cream | handle side; the M is recessed 1 mm |
 | `stl/kettlebell_cup.stl` | white / cream | the base cup |
 | `stl/kettlebell_inlay.stl` | **black** | the M; fills the recess exactly |
 | `kettlebell_keeper.scad` | — | editable OpenSCAD source (letter, font, size, thread fit) |
 
 ## Printing
+> **Bambu Handy (phone app) can't open model files.** It only sends jobs to the printer. Open `kettlebell_keeper_bambu.3mf` in **Bambu Studio** (free for Windows and Mac), check the filaments (slot 1 white, slot 2 black), press *Slice* and then *Print*. The job then shows up in Handy.
+
 - **Filament:** PLA or PETG. For the body, "Ivory White", "Bone White" or a warm cream; black for the M.
 - **Settings:** 0.2 mm layers (0.12 mm for a smoother finish), 3 walls, 15 % infill, **no supports**. Every overhang is 45° or less.
 - **Orientation:** as exported. Top: seam face down, handle up. Cup: base down.
