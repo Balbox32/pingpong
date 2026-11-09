@@ -191,20 +191,26 @@ function resize(){
 addEventListener('resize',resize); resize();
 
 /* ---------- audio ---------- */
-let AC=null, master, sfxBus, musBus;
+let AC=null, master, sfxBus, musBus, musFilter, noiseBuf, L={}, tr=0, lvl=-9;
 const PENT=[0,2,4,7,9];
-const note=i=>261.63*Math.pow(2,(PENT[((i%5)+5)%5]+12*Math.floor(i/5))/12);
+const note=i=>261.63*Math.pow(2,(PENT[((i%5)+5)%5]+12*Math.floor(i/5)+tr)/12);
+const mHz=m=>440*Math.pow(2,(m-69+tr)/12);
 function initAudio(){
   if(AC){ if(AC.state==='suspended') AC.resume(); return; }
   try{
     AC=new (window.AudioContext||window.webkitAudioContext)();
-    master=AC.createGain(); master.gain.value=save.muted?0:1; master.connect(AC.destination);
-    sfxBus=AC.createGain(); sfxBus.gain.value=.55; sfxBus.connect(master);
-    musBus=AC.createGain(); musBus.gain.value=.5; musBus.connect(master);
+    const comp=AC.createDynamicsCompressor(); comp.threshold.value=-14; comp.ratio.value=5; comp.connect(AC.destination);
+    master=AC.createGain(); master.gain.value=save.muted?0:1; master.connect(comp);
+    sfxBus=AC.createGain(); sfxBus.gain.value=.5; sfxBus.connect(master);
+    musFilter=AC.createBiquadFilter(); musFilter.type='lowpass'; musFilter.frequency.value=16000; musFilter.Q.value=.4; musFilter.connect(master);
+    musBus=AC.createGain(); musBus.gain.value=1; musBus.connect(musFilter);
+    // dotted-eighth echo for the lead and sparkle layers
     const d=AC.createDelay(1), fb=AC.createGain(), wet=AC.createGain();
-    d.delayTime.value=.47; fb.gain.value=.34; wet.gain.value=.5;
-    musBus.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(master);
-    nextStep=AC.currentTime+.1; setInterval(schedule,90);
+    d.delayTime.value=60/BPM*.75; fb.gain.value=.32; wet.gain.value=.3; d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(musBus);
+    for(const k of ['lead','pad','bass','drum','hat','arp']){ L[k]=AC.createGain(); L[k].gain.value=0; L[k].connect(musBus) }
+    L.lead.connect(d); L.arp.connect(d);
+    noiseBuf=AC.createBuffer(1,AC.sampleRate*.5|0,AC.sampleRate); const nd=noiseBuf.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
+    nextStep=AC.currentTime+.12; setInterval(schedule,80);
   }catch(e){AC=null}
 }
 function tone(f,dur,type,vol,delay,to,bus){
@@ -215,6 +221,12 @@ function tone(f,dur,type,vol,delay,to,bus){
   g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol||.2,t+.012);
   g.gain.exponentialRampToValueAtTime(.0001,t+dur);
   o.connect(g); g.connect(bus||sfxBus); o.start(t); o.stop(t+dur+.05);
+}
+function hiss(dur,vol,delay,hp,bus){
+  const t=AC.currentTime+delay, src=AC.createBufferSource(), f=AC.createBiquadFilter(), g=AC.createGain();
+  src.buffer=noiseBuf; f.type='highpass'; f.frequency.value=hp;
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  src.connect(f); f.connect(g); g.connect(bus); src.start(t,Math.random()*.3,dur+.02);
 }
 const sfx={
   hop(){tone(420,.14,'sine',.22,0,880)},
@@ -231,18 +243,60 @@ const sfx={
   ui(){tone(700,.08,'sine',.15,0,1000)},
   buy(){for(let i=0;i<5;i++) tone(note(10+i),.22,'sine',.16,i*.06)}
 };
-/* generative lullaby: soft pads, a bass, and a sparse bell line over C  Am  F  G */
-const CH=[[0,4,7],[9,12,16],[5,9,12],[7,11,14]];
-let nextStep=0, step=0;
+/* ---------- theme song: "Hop Along, Little Sprout" ----------
+   A swung music-box tune in two sections (bouncy A, wistful B), written as MIDI notes on an
+   eighth-note grid (N = hold). Layers fade in with how well you are playing: the title has the
+   tune, pads and bass; hopping adds hats and drums; a streak brings the full kit; a Super Bloom
+   streak adds a sparkling arpeggio. Each sky zone lifts the key. */
+const BPM=112, N=null;
+const SONG={
+  A:{ch:['C','C','G','G','Am','Am','F','F','C','C','G','G','F','G','C','C'],
+     mel:[76,79,84,79,76,N,79,N,  74,79,83,79,74,N,79,N,  72,76,81,76,72,N,76,81,  81,N,79,77,76,N,74,N,
+          76,79,84,79,76,N,79,N,  74,79,83,86,83,N,79,N,  81,N,84,81,83,N,86,N,   84,N,N,N,79,N,72,N]},
+  A2:{ch:['C','C','G','G','Am','Am','F','F','C','C','G','G','F','G','C','C'],
+     mel:[76,79,84,79,76,N,79,N,  74,79,83,79,74,N,79,N,  72,76,81,76,84,N,81,N,  81,N,79,77,76,77,79,N,
+          88,N,84,N,79,N,84,N,    86,N,83,N,79,N,83,N,    81,84,89,84,83,86,91,N,  84,N,N,N,N,N,0,0]},
+  B:{ch:['F','F','G','G','Em','Em','Am','Am','F','F','G','G','F','F','G','G'],
+     mel:[81,N,N,84,81,N,77,N,    83,N,N,86,83,N,79,N,    79,N,76,79,83,N,81,79,   81,N,N,N,76,N,72,76,
+          81,N,N,84,81,N,77,N,    83,N,N,86,83,N,86,N,    88,N,86,84,81,N,84,N,    86,N,N,83,86,N,N,N]}
+};
+const CHD={C:[48,60,64,67],G:[43,59,62,67],Am:[45,60,64,69],F:[41,60,65,69],Em:[40,59,64,67]};
+const ORDER=['A','A2','B','A2'], KEYS=[0,2,4,-1,2,5];
+let nextStep=0, step=0, secI=0;
 function schedule(){
-  if(!AC||AC.state!=='running'||paused) { if(AC) nextStep=Math.max(nextStep,AC.currentTime+.1); return; }
+  if(!AC||AC.state!=='running'||paused){ if(AC) nextStep=Math.max(nextStep,AC.currentTime+.1); return; }
+  const base=60/BPM/2;
   while(nextStep<AC.currentTime+.3){
-    const s=step%8, c=CH[(step>>3)%4], d=nextStep-AC.currentTime, hz=n=>261.63*Math.pow(2,n/12);
-    if(s===0){ for(const n of c) tone(hz(n-12),2.6,'sine',.05,d,0,musBus); tone(hz(c[0]-24),1.2,'triangle',.11,d,0,musBus); }
-    if(s===4||s===6) tone(hz(c[0]-24+(s===6?7:0)),.5,'triangle',.07,d,0,musBus);
-    if(Math.random()<(s%2?.3:.55)) tone(hz(pick(c)+(Math.random()<.3?24:12)),.5,'sine',.06,d,0,musBus);
-    nextStep+=.3125; step++;
+    const s=step, d=Math.max(0,nextStep-AC.currentTime), sec=SONG[ORDER[secI%ORDER.length]];
+    if(s===0) tr=KEYS[zoneI%KEYS.length];
+    const c=CHD[sec.ch[s>>2]], h=s&3, b=s&7, len=(s&1)?base*.84:base*1.16;
+    // lead: a plucked music box, two slightly detuned voices and a soft octave chime
+    const m=sec.mel[s];
+    if(m){ let n=1; while(s+n<64&&sec.mel[s+n]===null) n++;
+      const f=mHz(m), T=Math.min(n*base+.3,1.2);
+      tone(f,T,'triangle',.15,d,0,L.lead); tone(f*1.005,T,'sine',.08,d,0,L.lead); tone(f*2,.16,'sine',.045,d,0,L.lead) }
+    // pad: the chord, re-struck when it changes and at each bar
+    if(h===0&&(b===0||sec.ch[s>>2]!==sec.ch[(s>>2)-1])) for(let i=1;i<4;i++) tone(mHz(c[i]),base*7,'triangle',.04,d+i*.012,0,L.pad);
+    // bass: root, octave bounce, and a fifth to lead into the next chord
+    if(h===0) tone(mHz(c[0]),base*1.9,'triangle',.24,d,0,L.bass);
+    if(h===2) tone(mHz(c[0]+12),base*.9,'triangle',.15,d,0,L.bass);
+    if(h===3&&((s>>2)&1)) tone(mHz(c[0]+7),base*.8,'triangle',.13,d,0,L.bass);
+    // drums: soft kick, brushed snare, swung hats, a little fill at the end of each section
+    if(b===0||b===4||(b===3&&((s>>3)&1))) tone(150,.2,'sine',b===3?.25:.5,d,42,L.drum);
+    if(b===2||b===6||s>=62){ hiss(.13,.2,d,1700,L.drum); tone(230,.07,'triangle',.1,d,150,L.drum) }
+    hiss(.035,(s&1)?.1:.05,d,7000,L.hat);
+    // sparkle: sixteenth-note chord tones climbing two octaves
+    for(let k=0;k<2;k++){ const i=s*2+k; tone(mHz(c[1+i%3]+12+(i%6>2?12:0)),.13,'sine',.04,d+k*len/2,0,L.arp) }
+    nextStep+=len; if(++step>=64){ step=0; secI++ }
   }
+}
+function mixMusic(){
+  const l=state==='dead'?-1:state==='menu'?0:1+(streak>=2)+(streak>=5);
+  if(l===lvl||!AC) return; lvl=l;
+  const t=AC.currentTime, set=(k,v)=>L[k].gain.setTargetAtTime(v,t,.3);
+  set('lead',l<0?.6:1); set('pad',1); set('bass',l<0?.5:l===0?.8:1);
+  set('hat',l>=1?1:0); set('drum',l>=2?1:l===1?.55:0); set('arp',l>=3?1:0);
+  musFilter.frequency.setTargetAtTime(l<0?700:16000,t,l<0?.25:.4);
 }
 const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
 
@@ -709,6 +763,7 @@ let last=0;
 function frame(ts){
   requestAnimationFrame(frame);
   let dt=Math.min(.034,(ts-last)/1000||0); last=ts;
+  mixMusic();
   if(paused) { render(); return; }
   const steps=dt>.02?2:1; for(let i=0;i<steps;i++) update(dt/steps);
   render();
@@ -762,7 +817,7 @@ $('skinsDone').onclick=()=>{ sfx.ui(); $('skins').hidden=true; if(skinsFrom==='o
   [...'Bloomhop'].forEach((ch,i)=>{ const s=document.createElement('span'); s.textContent=ch; s.style.color=cols[i]; s.style.setProperty('--i',i); s.style.setProperty('--r',(i%2?3:-3)+'deg'); s.setAttribute('aria-hidden','true'); $('logo').appendChild(s) }) }
 
 muteUI(); reset(); $('best').textContent=save.best?'Best  '+save.best:'';
-window.__bloomhop={get s(){return {state,score,streak,blooms,aim,pl,maxH,planets,gloomY,cam,paused}},tap,save};
+window.__bloomhop={get audio(){return {AC,master,lvl,step,secI}},get s(){return {state,score,streak,blooms,aim,pl,maxH,planets,gloomY,cam,paused}},tap,save};
 requestAnimationFrame(frame);
 })();
 </script>
